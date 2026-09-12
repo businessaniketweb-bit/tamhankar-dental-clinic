@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Cinzel", "Playfair Display", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --color-gold-300: #F3DC9B;
+  --color-gold-400: #E6C875;
+  --color-gold-500: #C5A059;
+  --color-gold-600: #A88438;
+  --color-gold-700: #7E6125;
+  --color-dark-950: #07080A;
+  --color-dark-900: #0B0D11;
+  --color-dark-850: #12151B;
+  --color-dark-800: #181C24;
+  --color-dark-700: #222834;
+}
+
+/* Custom scrollbar and subtle luxury utilities */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0B0D11;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #252D3A;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #C5A059;
+}
+
+.luxury-gradient-text {
+  background: linear-gradient(135deg, #FFFFFF 20%, #E6C875 60%, #C5A059 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-gradient-border {
+  border-image: linear-gradient(to bottom right, rgba(197, 160, 89, 0.4), rgba(197, 160, 89, 0.05)) 1;
+}
+
+.champagne-glow {
+  box-shadow: 0 0 50px -10px rgba(197, 160, 89, 0.15);
+}/* Admin appointment status dropdown */
+.status-select {
+  color: #ffffff;
+  background-color: #181C24;
+  color-scheme: dark;
+}
+
+.status-select option {
+  background-color: #181C24;
+  color: #ffffff;
+}
+
+.status-select option:checked {
+  background-color: #C5A059;
+  color: #0B0D11;
+}
+
+.status-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
