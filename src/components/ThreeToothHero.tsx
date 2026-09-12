@@ -1,50 +1,48 @@
+/**
+ * Premium Interactive 3D Dental Experience
+ * Same WebGL experience on desktop and mobile, with mobile-safe rendering lifecycle.
+ */
+
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { RotateCw, ShieldCheck } from 'lucide-react';
 
 type MaterialMode = 'enamel' | 'champagne_gold' | 'cad_wireframe';
 
-/**
- * Premium dental hero.
- * Desktop/tablet: lightweight Three.js model.
- * Mobile: GPU-safe SVG/CSS presentation with zero WebGL rendering.
- */
 export const ThreeToothHero: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [materialMode, setMaterialMode] = useState<MaterialMode>('enamel');
   const [isRotating, setIsRotating] = useState(true);
   const [webGlSupported, setWebGlSupported] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const isRotatingRef = useRef(isRotating);
 
+  const isRotatingRef = useRef(isRotating);
   useEffect(() => {
     isRotatingRef.current = isRotating;
   }, [isRotating]);
 
-  useEffect(() => {
-    const query = window.matchMedia('(max-width: 767px)');
-    const update = () => setIsMobile(query.matches);
-    update();
-    query.addEventListener?.('change', update);
-    return () => query.removeEventListener?.('change', update);
-  }, []);
+  const materialsRef = useRef<{
+    enamel: THREE.MeshPhysicalMaterial;
+    gold: THREE.MeshPhysicalMaterial;
+    wireframe: THREE.MeshBasicMaterial;
+  } | null>(null);
+  const toothMeshesRef = useRef<THREE.Mesh[]>([]);
 
   useEffect(() => {
-    if (isMobile) {
-      setIsLoaded(true);
-      return;
-    }
-
     const container = containerRef.current;
     if (!container) return;
+
+    const isMobile = window.matchMedia('(max-width: 767px)').matches;
 
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({
-        antialias: true,
+        antialias: !isMobile,
         alpha: true,
-        powerPreference: 'high-performance',
+        powerPreference: isMobile ? 'default' : 'high-performance',
+        preserveDrawingBuffer: false,
+        depth: true,
+        stencil: false,
       });
     } catch (error) {
       console.warn('WebGL context could not be initialized:', error);
@@ -54,50 +52,74 @@ export const ThreeToothHero: React.FC = () => {
 
     const width = Math.max(container.clientWidth, 320);
     const height = Math.max(container.clientHeight, 320);
-    const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+    const pixelRatio = isMobile
+      ? Math.min(window.devicePixelRatio || 1, 1.25)
+      : Math.min(window.devicePixelRatio || 1, 2);
 
-    renderer.setSize(width, height, false);
     renderer.setPixelRatio(pixelRatio);
+    renderer.setSize(width, height, false);
+    renderer.setClearColor(0x000000, 0);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    renderer.toneMappingExposure = 1.15;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     const canvas = renderer.domElement;
     canvas.style.width = '100%';
     canvas.style.height = '100%';
     canvas.style.display = 'block';
+    canvas.style.position = 'absolute';
+    canvas.style.inset = '0';
     canvas.style.touchAction = 'pan-y';
+    canvas.style.transform = 'translateZ(0)';
+    canvas.style.backfaceVisibility = 'hidden';
+    container.style.isolation = 'isolate';
     container.appendChild(canvas);
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x0b0d11, 0.035);
+    scene.fog = new THREE.FogExp2(0x0b0d11, 0.04);
 
     const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
-    camera.position.set(0, 0.35, 4.8);
+    camera.position.set(0, 0.4, 4.8);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+    scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xfff3dc, 2.4);
+    const keyLight = new THREE.DirectionalLight(0xfff3dc, 2.8);
     keyLight.position.set(4, 5, 4);
     scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0x7ec8e3, 2.4);
+    const rimLight = new THREE.DirectionalLight(0x7ec8e3, 3.2);
     rimLight.position.set(-4, 3, -3);
     scene.add(rimLight);
 
-    const bounceLight = new THREE.PointLight(0xc5a059, 1.4, 10);
+    const bounceLight = new THREE.PointLight(0xc5a059, 1.8, 10);
     bounceLight.position.set(0, -3, 2);
     scene.add(bounceLight);
 
-    const enamelMaterial = new THREE.MeshStandardMaterial({
+    const spotLight = new THREE.SpotLight(0xffffff, 2.2, 12, Math.PI / 6, 0.4);
+    spotLight.position.set(0, 6, 2);
+    scene.add(spotLight);
+
+    const enamelMaterial = new THREE.MeshPhysicalMaterial({
       color: 0xfdfaf4,
-      roughness: 0.2,
-      metalness: 0.03,
+      roughness: 0.18,
+      metalness: 0.05,
+      clearcoat: 0.95,
+      clearcoatRoughness: 0.12,
+      transmission: 0.12,
+      ior: 1.54,
+      reflectivity: 0.8,
+      sheen: 0.35,
+      sheenColor: new THREE.Color(0xf1e4c3),
     });
 
-    const goldMaterial = new THREE.MeshStandardMaterial({
+    const goldMaterial = new THREE.MeshPhysicalMaterial({
       color: 0xd4af37,
-      roughness: 0.25,
+      roughness: 0.24,
       metalness: 0.88,
+      clearcoat: 0.5,
+      clearcoatRoughness: 0.2,
+      reflectivity: 0.95,
     });
 
     const wireframeMaterial = new THREE.MeshBasicMaterial({
@@ -109,28 +131,36 @@ export const ThreeToothHero: React.FC = () => {
 
     const accentRingMaterial = new THREE.MeshStandardMaterial({
       color: 0xc5a059,
-      metalness: 0.85,
-      roughness: 0.28,
-      emissive: 0x33270f,
-      emissiveIntensity: 0.25,
+      metalness: 0.9,
+      roughness: 0.25,
+      emissive: 0x473815,
+      emissiveIntensity: 0.3,
     });
+
+    materialsRef.current = {
+      enamel: enamelMaterial,
+      gold: goldMaterial,
+      wireframe: wireframeMaterial,
+    };
 
     const toothGroup = new THREE.Group();
     const meshes: THREE.Mesh[] = [];
 
-    const crownGeo = new THREE.CylinderGeometry(0.92, 0.72, 1.05, 24, 10);
+    const crownGeo = new THREE.CylinderGeometry(0.92, 0.72, 1.05, 32, 16);
     const pos = crownGeo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
       const y = pos.getY(i);
       const z = pos.getZ(i);
+
       if (y > 0.2) {
-        const cuspFactor = Math.sin(x * 3.8) * Math.sin(z * 3.8) * 0.14;
-        const valley = (x * x + z * z) * -0.07;
+        const cuspFactor = Math.sin(x * 3.8) * Math.sin(z * 3.8) * 0.16;
+        const valley = (Math.pow(x, 2) + Math.pow(z, 2)) * -0.08;
         pos.setY(i, y + cuspFactor + valley);
       }
+
       const angle = Math.atan2(z, x);
-      const bulge = Math.sin(angle * 4) * 0.06;
+      const bulge = Math.sin(angle * 4) * 0.08;
       pos.setX(i, x * (1 + bulge));
       pos.setZ(i, z * (1 + bulge));
     }
@@ -141,26 +171,36 @@ export const ThreeToothHero: React.FC = () => {
     toothGroup.add(crownMesh);
     meshes.push(crownMesh);
 
-    const occlusalGeo = new THREE.SphereGeometry(0.85, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.32);
+    const occlusalGeo = new THREE.SphereGeometry(
+      0.85,
+      32,
+      16,
+      0,
+      Math.PI * 2,
+      0,
+      Math.PI * 0.32,
+    );
     const occlusalMesh = new THREE.Mesh(occlusalGeo, enamelMaterial);
     occlusalMesh.position.y = 0.88;
     occlusalMesh.scale.set(1.08, 0.45, 1.08);
     toothGroup.add(occlusalMesh);
     meshes.push(occlusalMesh);
 
-    const collarGeo = new THREE.TorusGeometry(0.72, 0.065, 10, 32);
+    const collarGeo = new THREE.TorusGeometry(0.72, 0.065, 16, 48);
     const collarMesh = new THREE.Mesh(collarGeo, accentRingMaterial);
     collarMesh.rotation.x = Math.PI / 2;
     collarMesh.position.y = -0.08;
     toothGroup.add(collarMesh);
 
-    const root1Geo = new THREE.ConeGeometry(0.38, 1.45, 16, 10);
+    const root1Geo = new THREE.ConeGeometry(0.38, 1.45, 24, 16);
     const rPos1 = root1Geo.attributes.position;
     for (let i = 0; i < rPos1.count; i++) {
       const y = rPos1.getY(i);
-      rPos1.setX(i, rPos1.getX(i) + Math.sin((y + 0.7) * 1.5) * 0.1);
+      const curve = Math.sin((y + 0.7) * 1.5) * 0.12;
+      rPos1.setX(i, rPos1.getX(i) + curve);
     }
     root1Geo.computeVertexNormals();
+
     const root1Mesh = new THREE.Mesh(root1Geo, enamelMaterial);
     root1Mesh.rotation.z = Math.PI - 0.14;
     root1Mesh.rotation.x = 0.08;
@@ -168,13 +208,15 @@ export const ThreeToothHero: React.FC = () => {
     toothGroup.add(root1Mesh);
     meshes.push(root1Mesh);
 
-    const root2Geo = new THREE.ConeGeometry(0.36, 1.4, 16, 10);
+    const root2Geo = new THREE.ConeGeometry(0.36, 1.4, 24, 16);
     const rPos2 = root2Geo.attributes.position;
     for (let i = 0; i < rPos2.count; i++) {
       const y = rPos2.getY(i);
-      rPos2.setX(i, rPos2.getX(i) - Math.sin((y + 0.7) * 1.6) * 0.11);
+      const curve = -Math.sin((y + 0.7) * 1.6) * 0.14;
+      rPos2.setX(i, rPos2.getX(i) + curve);
     }
     root2Geo.computeVertexNormals();
+
     const root2Mesh = new THREE.Mesh(root2Geo, enamelMaterial);
     root2Mesh.rotation.z = Math.PI + 0.15;
     root2Mesh.rotation.x = -0.06;
@@ -182,7 +224,9 @@ export const ThreeToothHero: React.FC = () => {
     toothGroup.add(root2Mesh);
     meshes.push(root2Mesh);
 
-    const orbitGeo = new THREE.TorusGeometry(1.6, 0.012, 8, 48);
+    toothMeshesRef.current = meshes;
+
+    const orbitGeo = new THREE.TorusGeometry(1.6, 0.012, 16, 80);
     const orbitMesh = new THREE.Mesh(orbitGeo, accentRingMaterial);
     orbitMesh.rotation.x = Math.PI / 2.3;
     orbitMesh.position.y = 0.15;
@@ -191,9 +235,9 @@ export const ThreeToothHero: React.FC = () => {
     const orbitMaterial2 = new THREE.MeshBasicMaterial({
       color: 0xc5a059,
       transparent: true,
-      opacity: 0.2,
+      opacity: 0.25,
     });
-    const orbitGeo2 = new THREE.TorusGeometry(1.85, 0.008, 8, 48);
+    const orbitGeo2 = new THREE.TorusGeometry(1.85, 0.008, 16, 80);
     const orbitMesh2 = new THREE.Mesh(orbitGeo2, orbitMaterial2);
     orbitMesh2.rotation.x = -Math.PI / 2.6;
     orbitMesh2.position.y = 0.1;
@@ -201,7 +245,7 @@ export const ThreeToothHero: React.FC = () => {
 
     scene.add(toothGroup);
 
-    const particlesCount = 35;
+    const particlesCount = isMobile ? 40 : 75;
     const particlePositions = new Float32Array(particlesCount * 3);
     for (let i = 0; i < particlesCount * 3; i += 3) {
       particlePositions[i] = (Math.random() - 0.5) * 6;
@@ -212,10 +256,11 @@ export const ThreeToothHero: React.FC = () => {
     particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
     const particleMat = new THREE.PointsMaterial({
       color: 0xe6c875,
-      size: 0.03,
+      size: 0.035,
       transparent: true,
-      opacity: 0.4,
+      opacity: 0.45,
       blending: THREE.AdditiveBlending,
+      depthWrite: false,
     });
     const particles = new THREE.Points(particleGeo, particleMat);
     scene.add(particles);
@@ -227,13 +272,26 @@ export const ThreeToothHero: React.FC = () => {
     let mouseX = 0;
     let mouseY = 0;
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handlePointerMove = (clientX: number, clientY: number) => {
       const rect = container.getBoundingClientRect();
-      mouseX = (((e.clientX - rect.left) / rect.width) * 2 - 1) * 0.35;
-      mouseY = (-(((e.clientY - rect.top) / rect.height) * 2 - 1)) * 0.25;
+      if (rect.width <= 0 || rect.height <= 0) return;
+      const x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      const y = -(((clientY - rect.top) / rect.height) * 2 - 1);
+      mouseX = x * 0.4;
+      mouseY = y * 0.3;
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      handlePointerMove(e.clientX, e.clientY);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      if (touch) handlePointerMove(touch.clientX, touch.clientY);
     };
 
     container.addEventListener('mousemove', handleMouseMove, { passive: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: true });
 
     const resizeObserver = new ResizeObserver((entries) => {
       const entry = entries[0];
@@ -247,34 +305,103 @@ export const ThreeToothHero: React.FC = () => {
     });
     resizeObserver.observe(container);
 
+    let isPageVisible = !document.hidden;
+    let isInViewport = true;
+    let isScrolling = false;
+    let scrollStopTimer = 0;
     let animationFrameId = 0;
     let lastFrameTime = performance.now();
     let elapsed = 0;
+
+    const shouldRender = () => isPageVisible && isInViewport && !isScrolling;
+
+    const renderFrame = () => {
+      if (!shouldRender()) return;
+      renderer.render(scene, camera);
+    };
 
     const animate = (now: number) => {
       animationFrameId = requestAnimationFrame(animate);
       const delta = Math.min((now - lastFrameTime) / 1000, 0.05);
       lastFrameTime = now;
+
+      if (!shouldRender()) return;
+
       elapsed += delta;
 
-      if (isRotatingRef.current) targetRotationY += 0.3 * delta;
+      if (isRotatingRef.current) {
+        targetRotationY += 0.35 * delta;
+      }
 
-      toothGroup.position.y = Math.sin(elapsed * 1.1) * 0.07;
-      toothGroup.rotation.y += (targetRotationY + mouseX - toothGroup.rotation.y) * 0.055;
-      toothGroup.rotation.x += (targetRotationX - mouseY - toothGroup.rotation.x) * 0.055;
-      orbitMesh.rotation.z = elapsed * 0.35;
-      orbitMesh2.rotation.z = -elapsed * 0.22;
-      particles.rotation.y = elapsed * 0.035;
+      toothGroup.position.y = Math.sin(elapsed * 1.2) * 0.08;
+      toothGroup.rotation.y +=
+        (targetRotationY + mouseX - toothGroup.rotation.y) * 0.06;
+      toothGroup.rotation.x +=
+        (targetRotationX - mouseY - toothGroup.rotation.x) * 0.06;
+
+      orbitMesh.rotation.z = elapsed * 0.4;
+      orbitMesh2.rotation.z = -elapsed * 0.25;
+      particles.rotation.y = elapsed * 0.04;
 
       renderer.render(scene, camera);
     };
+
+    const handleVisibilityChange = () => {
+      isPageVisible = !document.hidden;
+      lastFrameTime = performance.now();
+      if (isPageVisible) renderFrame();
+    };
+
+    const handleScroll = () => {
+      if (!isMobile) return;
+      isScrolling = true;
+      window.clearTimeout(scrollStopTimer);
+      scrollStopTimer = window.setTimeout(() => {
+        isScrolling = false;
+        lastFrameTime = performance.now();
+        renderFrame();
+      }, 120);
+    };
+
+    const intersectionObserver = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        isInViewport = Boolean(entry?.isIntersecting);
+        lastFrameTime = performance.now();
+        if (isInViewport) renderFrame();
+      },
+      { threshold: 0.01 },
+    );
+    intersectionObserver.observe(container);
+
+    const handleContextLost = (event: Event) => {
+      event.preventDefault();
+      cancelAnimationFrame(animationFrameId);
+    };
+
+    const handleContextRestored = () => {
+      lastFrameTime = performance.now();
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    canvas.addEventListener('webglcontextlost', handleContextLost, false);
+    canvas.addEventListener('webglcontextrestored', handleContextRestored, false);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    if (isMobile) window.addEventListener('scroll', handleScroll, { passive: true });
 
     animationFrameId = requestAnimationFrame(animate);
 
     return () => {
       cancelAnimationFrame(animationFrameId);
+      window.clearTimeout(scrollStopTimer);
       container.removeEventListener('mousemove', handleMouseMove);
+      container.removeEventListener('touchmove', handleTouchMove);
       resizeObserver.disconnect();
+      intersectionObserver.disconnect();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (isMobile) window.removeEventListener('scroll', handleScroll);
+      canvas.removeEventListener('webglcontextlost', handleContextLost);
+      canvas.removeEventListener('webglcontextrestored', handleContextRestored);
 
       if (canvas.parentNode === container) container.removeChild(canvas);
 
@@ -286,71 +413,40 @@ export const ThreeToothHero: React.FC = () => {
       orbitGeo.dispose();
       orbitGeo2.dispose();
       particleGeo.dispose();
+      particleMat.dispose();
       enamelMaterial.dispose();
       goldMaterial.dispose();
       wireframeMaterial.dispose();
       accentRingMaterial.dispose();
       orbitMaterial2.dispose();
-      particleMat.dispose();
       renderer.dispose();
-    };
-  }, [isMobile]);
 
-  const setMode = (mode: MaterialMode) => setMaterialMode(mode);
+      materialsRef.current = null;
+      toothMeshesRef.current = [];
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!materialsRef.current || toothMeshesRef.current.length === 0) return;
+
+    const mats = materialsRef.current;
+    let selectedMat: THREE.Material = mats.enamel;
+
+    if (materialMode === 'champagne_gold') selectedMat = mats.gold;
+    if (materialMode === 'cad_wireframe') selectedMat = mats.wireframe;
+
+    toothMeshesRef.current.forEach((mesh) => {
+      mesh.material = selectedMat;
+    });
+  }, [materialMode]);
 
   return (
-    <div className="relative w-full h-[430px] sm:h-[480px] lg:h-[580px] flex items-center justify-center select-none overflow-hidden">
+    <div className="relative w-full h-[480px] lg:h-[580px] flex items-center justify-center select-none overflow-hidden">
       <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-        <div className="w-[300px] sm:w-[420px] h-[300px] sm:h-[420px] rounded-full bg-gradient-to-tr from-[#C5A059]/10 via-[#C5A059]/5 to-transparent blur-3xl" />
+        <div className="w-[320px] sm:w-[420px] h-[320px] sm:h-[420px] rounded-full bg-gradient-to-tr from-[#C5A059]/10 via-[#C5A059]/5 to-transparent blur-3xl pointer-events-none" />
       </div>
 
-      {isMobile ? (
-        <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-          <div className="absolute w-[270px] h-[270px] rounded-full border border-[#C5A059]/10" />
-          <div className="absolute w-[215px] h-[215px] rounded-full border border-[#C5A059]/10 rotate-12" />
-          <div className="absolute w-[170px] h-[170px] rounded-full bg-[#C5A059]/5 blur-2xl" />
-
-          <div className={`relative transition-transform duration-700 ${isRotating ? 'animate-[toothFloat_4s_ease-in-out_infinite]' : ''}`}>
-            <svg width="190" height="245" viewBox="0 0 190 245" aria-label="Premium dental crown illustration" role="img">
-              <defs>
-                <linearGradient id="mobileTooth" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor={materialMode === 'champagne_gold' ? '#F3DC9B' : '#FFFFFF'} />
-                  <stop offset="48%" stopColor={materialMode === 'champagne_gold' ? '#C5A059' : '#F7F4EC'} />
-                  <stop offset="100%" stopColor={materialMode === 'champagne_gold' ? '#7E6125' : '#BFC4C8'} />
-                </linearGradient>
-                <filter id="toothGlow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="5" result="blur" />
-                  <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                </filter>
-              </defs>
-              <ellipse cx="95" cy="226" rx="48" ry="8" fill="#C5A059" opacity=".12" />
-              <path
-                d="M43 65 C47 34 67 20 95 20 C123 20 143 34 147 65 L151 104 C153 121 142 139 129 148 L122 205 C120 220 109 229 95 229 C81 229 70 220 68 205 L61 148 C48 139 37 121 39 104 Z"
-                fill="url(#mobileTooth)"
-                stroke="#C5A059"
-                strokeOpacity=".45"
-                strokeWidth="1.5"
-                filter="url(#toothGlow)"
-              />
-              <path d="M51 72 C66 59 79 64 95 77 C111 64 124 59 139 72" fill="none" stroke="#C5A059" strokeOpacity=".35" strokeWidth="2" />
-              <path d="M61 105 C74 93 83 98 95 110 C107 98 116 93 129 105" fill="none" stroke="#C5A059" strokeOpacity=".28" strokeWidth="2" />
-              <ellipse cx="95" cy="78" rx="43" ry="18" fill="none" stroke="#C5A059" strokeOpacity=".3" strokeWidth="2" />
-              {materialMode === 'cad_wireframe' && (
-                <g fill="none" stroke="#C5A059" strokeOpacity=".55" strokeWidth="1">
-                  <path d="M43 65 C70 82 120 82 147 65" />
-                  <path d="M39 104 C68 116 122 116 151 104" />
-                  <path d="M61 148 C82 158 108 158 129 148" />
-                  <path d="M68 205 C82 195 108 195 122 205" />
-                </g>
-              )}
-            </svg>
-          </div>
-
-          <div className="absolute top-7 left-1/2 -translate-x-1/2 text-[9px] uppercase tracking-[0.22em] text-[#C5A059]/80 whitespace-nowrap">
-            Precision Dental Anatomy
-          </div>
-        </div>
-      ) : webGlSupported ? (
+      {webGlSupported ? (
         <div ref={containerRef} className="w-full h-full relative cursor-grab active:cursor-grabbing">
           {!isLoaded && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -371,19 +467,65 @@ export const ThreeToothHero: React.FC = () => {
         </div>
       )}
 
-      <div className="absolute bottom-4 left-3 right-3 sm:left-auto sm:right-6 flex flex-wrap items-center justify-center sm:justify-end gap-2 text-xs z-10">
-        <div className="inline-flex items-center bg-[#12151B]/90 backdrop-blur-md px-2.5 py-1.5 rounded-full border border-white/10 shadow-xl space-x-1">
-          <button type="button" onClick={() => setMode('enamel')} className={`px-2.5 py-1 rounded-full transition-all text-[11px] font-medium ${materialMode === 'enamel' ? 'bg-[#C5A059] text-[#0B0D11]' : 'text-slate-300 hover:text-white'}`}>Enamel</button>
-          <button type="button" onClick={() => setMode('champagne_gold')} className={`px-2.5 py-1 rounded-full transition-all text-[11px] font-medium ${materialMode === 'champagne_gold' ? 'bg-[#C5A059] text-[#0B0D11]' : 'text-slate-300 hover:text-white'}`}>Gold Alloy</button>
-          <button type="button" onClick={() => setMode('cad_wireframe')} className={`px-2.5 py-1 rounded-full transition-all text-[11px] font-medium ${materialMode === 'cad_wireframe' ? 'bg-[#C5A059] text-[#0B0D11]' : 'text-slate-300 hover:text-white'}`}>CAD</button>
-          <div className="w-px h-3.5 bg-white/10 mx-1" />
-          <button type="button" onClick={() => setIsRotating((value) => !value)} className={`p-1 rounded-full transition-all ${isRotating ? 'text-[#C5A059]' : 'text-slate-400 hover:text-white'}`} title={isRotating ? 'Pause Rotation' : 'Resume Auto Rotation'} aria-label="Toggle 3D Rotation">
+      <div className="absolute bottom-4 left-4 right-4 sm:left-auto sm:right-6 flex flex-wrap items-center justify-center sm:justify-end gap-2 text-xs z-10">
+        <div className="inline-flex items-center bg-[#12151B]/85 backdrop-blur-md px-2.5 py-1.5 rounded-full border border-white/10 shadow-xl space-x-1">
+          <button
+            id="view-enamel-btn"
+            type="button"
+            onClick={() => setMaterialMode('enamel')}
+            className={`px-2.5 py-1 rounded-full transition-all text-[11px] font-medium ${
+              materialMode === 'enamel' ? 'bg-[#C5A059] text-[#0B0D11]' : 'text-slate-300 hover:text-white'
+            }`}
+            title="Ceramic Enamel Rendering"
+          >
+            Enamel
+          </button>
+          <button
+            id="view-gold-btn"
+            type="button"
+            onClick={() => setMaterialMode('champagne_gold')}
+            className={`px-2.5 py-1 rounded-full transition-all text-[11px] font-medium ${
+              materialMode === 'champagne_gold' ? 'bg-[#C5A059] text-[#0B0D11]' : 'text-slate-300 hover:text-white'
+            }`}
+            title="Noble Alloy Restoration"
+          >
+            Gold Alloy
+          </button>
+          <button
+            id="view-cad-btn"
+            type="button"
+            onClick={() => setMaterialMode('cad_wireframe')}
+            className={`px-2.5 py-1 rounded-full transition-all text-[11px] font-medium ${
+              materialMode === 'cad_wireframe' ? 'bg-[#C5A059] text-[#0B0D11]' : 'text-slate-300 hover:text-white'
+            }`}
+            title="CAD Wireframe Diagnostics"
+          >
+            CAD
+          </button>
+
+          <div className="w-[1px] h-3.5 bg-white/10 mx-1" />
+
+          <button
+            id="toggle-rotation-btn"
+            type="button"
+            onClick={() => setIsRotating((value) => !value)}
+            className={`p-1 rounded-full transition-all ${
+              isRotating ? 'text-[#C5A059]' : 'text-slate-400 hover:text-white'
+            }`}
+            title={isRotating ? 'Pause Rotation' : 'Resume Auto Rotation'}
+            aria-label="Toggle 3D Rotation"
+          >
             <RotateCw className={`w-3.5 h-3.5 ${isRotating ? 'animate-spin-slow' : ''}`} />
           </button>
         </div>
       </div>
 
-      <style>{`@keyframes toothFloat { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-8px) rotate(1deg); } }`}</style>
+      <div className="absolute top-6 left-6 hidden sm:flex items-center space-x-2 pointer-events-none">
+        <div className="w-1.5 h-1.5 rounded-full bg-[#C5A059] animate-pulse" />
+        <span className="text-[10px] uppercase tracking-[0.2em] text-[#C5A059]/80 font-mono">
+          Interactive 3D Molar Anatomy • Real-time PBR
+        </span>
+      </div>
     </div>
   );
 };
