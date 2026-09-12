@@ -39,10 +39,11 @@ export const ThreeToothHero: React.FC = () => {
     if (!container) return;
 
     // 1. Safe WebGL Renderer Initialization
+    const isMobile = window.matchMedia('(max-width: 767px)').matches;
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({
-        antialias: true,
+        antialias: !isMobile,
         alpha: true,
         powerPreference: 'high-performance',
       });
@@ -56,7 +57,10 @@ export const ThreeToothHero: React.FC = () => {
     const height = container.clientHeight || 480;
 
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    // Keep mobile GPU load under control while preserving desktop quality.
+    renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio || 1, isMobile ? 1.25 : 1.75)
+    );
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.15;
 
@@ -104,12 +108,12 @@ export const ThreeToothHero: React.FC = () => {
       color: 0xfdfaf4,
       roughness: 0.18,
       metalness: 0.05,
-      clearcoat: 0.95,
-      clearcoatRoughness: 0.12,
-      transmission: 0.12,
+      clearcoat: isMobile ? 0.45 : 0.95,
+      clearcoatRoughness: isMobile ? 0.2 : 0.12,
+      transmission: isMobile ? 0 : 0.12,
       ior: 1.54,
-      reflectivity: 0.8,
-      sheen: 0.35,
+      reflectivity: isMobile ? 0.55 : 0.8,
+      sheen: isMobile ? 0.08 : 0.35,
       sheenColor: new THREE.Color(0xf1e4c3),
     });
 
@@ -150,7 +154,11 @@ export const ThreeToothHero: React.FC = () => {
     const meshes: THREE.Mesh[] = [];
 
     // --- Crown Body: Smooth molar crown with anatomically inspired sculpted curvature
-    const crownGeo = new THREE.CylinderGeometry(0.92, 0.72, 1.05, 32, 16);
+    const crownGeo = new THREE.CylinderGeometry(
+      0.92, 0.72, 1.05,
+      isMobile ? 20 : 32,
+      isMobile ? 10 : 16
+    );
     // Deform vertices to model anatomical molar grooves and cusps
     const pos = crownGeo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
@@ -180,7 +188,12 @@ export const ThreeToothHero: React.FC = () => {
     meshes.push(crownMesh);
 
     // --- Crown Cap (Glossy Occlusal Surface)
-    const occlusalGeo = new THREE.SphereGeometry(0.85, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.32);
+    const occlusalGeo = new THREE.SphereGeometry(
+      0.85,
+      isMobile ? 20 : 32,
+      isMobile ? 10 : 16,
+      0, Math.PI * 2, 0, Math.PI * 0.32
+    );
     const occlusalMesh = new THREE.Mesh(occlusalGeo, enamelMaterial);
     occlusalMesh.position.y = 0.88;
     occlusalMesh.scale.set(1.08, 0.45, 1.08);
@@ -188,7 +201,9 @@ export const ThreeToothHero: React.FC = () => {
     meshes.push(occlusalMesh);
 
     // --- Cervical Margin Collar (Precision Finish Line)
-    const collarGeo = new THREE.TorusGeometry(0.72, 0.065, 16, 48);
+    const collarGeo = new THREE.TorusGeometry(
+      0.72, 0.065, isMobile ? 10 : 16, isMobile ? 28 : 48
+    );
     const collarMesh = new THREE.Mesh(collarGeo, accentRingMaterial);
     collarMesh.rotation.x = Math.PI / 2;
     collarMesh.position.y = -0.08;
@@ -196,7 +211,9 @@ export const ThreeToothHero: React.FC = () => {
 
     // --- Mesial & Distal Roots (Bi-rooted anatomical molar form)
     // Root 1 (Mesial root)
-    const root1Geo = new THREE.ConeGeometry(0.38, 1.45, 24, 16);
+    const root1Geo = new THREE.ConeGeometry(
+      0.38, 1.45, isMobile ? 16 : 24, isMobile ? 10 : 16
+    );
     const rPos1 = root1Geo.attributes.position;
     for (let i = 0; i < rPos1.count; i++) {
       const y = rPos1.getY(i);
@@ -213,7 +230,9 @@ export const ThreeToothHero: React.FC = () => {
     meshes.push(root1Mesh);
 
     // Root 2 (Distal root)
-    const root2Geo = new THREE.ConeGeometry(0.36, 1.4, 24, 16);
+    const root2Geo = new THREE.ConeGeometry(
+      0.36, 1.4, isMobile ? 16 : 24, isMobile ? 10 : 16
+    );
     const rPos2 = root2Geo.attributes.position;
     for (let i = 0; i < rPos2.count; i++) {
       const y = rPos2.getY(i);
@@ -233,13 +252,17 @@ export const ThreeToothHero: React.FC = () => {
     toothMeshesRef.current = meshes;
 
     // --- Precision Studio Aura / Orbital Ring
-    const orbitGeo = new THREE.TorusGeometry(1.6, 0.012, 16, 80);
+    const orbitGeo = new THREE.TorusGeometry(
+      1.6, 0.012, isMobile ? 8 : 16, isMobile ? 40 : 80
+    );
     const orbitMesh = new THREE.Mesh(orbitGeo, accentRingMaterial);
     orbitMesh.rotation.x = Math.PI / 2.3;
     orbitMesh.position.y = 0.15;
     toothGroup.add(orbitMesh);
 
-    const orbitGeo2 = new THREE.TorusGeometry(1.85, 0.008, 16, 80);
+    const orbitGeo2 = new THREE.TorusGeometry(
+      1.85, 0.008, isMobile ? 8 : 16, isMobile ? 40 : 80
+    );
     const orbitMesh2 = new THREE.Mesh(orbitGeo2, new THREE.MeshBasicMaterial({
       color: 0xc5a059,
       transparent: true,
@@ -252,7 +275,7 @@ export const ThreeToothHero: React.FC = () => {
     scene.add(toothGroup);
 
     // 7. Ambient Micro Floating Luxury Particles
-    const particlesCount = 75;
+    const particlesCount = isMobile ? 24 : 75;
     const particlePositions = new Float32Array(particlesCount * 3);
     for (let i = 0; i < particlesCount * 3; i += 3) {
       particlePositions[i] = (Math.random() - 0.5) * 6;
@@ -316,12 +339,20 @@ export const ThreeToothHero: React.FC = () => {
 
     // 10. Animation Loop
     let animationFrameId: number;
-    let clock = new THREE.Clock();
+    let lastFrameTime = 0;
+    let elapsedTime = 0;
+    const targetFrameMs = isMobile ? 1000 / 30 : 1000 / 60;
 
-    const animate = () => {
+    const animate = (now = performance.now()) => {
       animationFrameId = requestAnimationFrame(animate);
-      const delta = clock.getDelta();
-      const time = clock.getElapsedTime();
+
+      // Throttle mobile rendering to ~30 FPS to reduce battery/heat/GPU usage.
+      if (now - lastFrameTime < targetFrameMs) return;
+
+      const delta = Math.min((now - lastFrameTime) / 1000, 0.05);
+      lastFrameTime = now;
+      elapsedTime += delta;
+      const time = elapsedTime;
 
       // Slow floating levitation
       if (toothGroupRef.current) {
@@ -359,12 +390,19 @@ export const ThreeToothHero: React.FC = () => {
       }
       renderer.dispose();
       crownGeo.dispose();
+      occlusalGeo.dispose();
+      collarGeo.dispose();
       root1Geo.dispose();
       root2Geo.dispose();
+      orbitGeo.dispose();
+      orbitGeo2.dispose();
+      particleGeo.dispose();
+      particleMat.dispose();
       enamelMaterial.dispose();
       goldMaterial.dispose();
       wireframeMaterial.dispose();
       accentRingMaterial.dispose();
+      orbitMesh2.material.dispose();
     };
   }, []);
 
