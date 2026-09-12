@@ -46,7 +46,12 @@ export const ThreeToothHero: React.FC = () => {
       renderer = new THREE.WebGLRenderer({
         antialias: !isMobile,
         alpha: true,
+        premultipliedAlpha: false,
+        preserveDrawingBuffer: true,
+        stencil: false,
+        depth: true,
         powerPreference: isMobile ? 'default' : 'high-performance',
+        failIfMajorPerformanceCaveat: false,
       });
     } catch (e) {
       console.warn('WebGL context could not be initialized:', e);
@@ -58,9 +63,10 @@ export const ThreeToothHero: React.FC = () => {
     const height = container.clientHeight || 480;
 
     renderer.setSize(width, height);
+    renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(
       isMobile
-        ? Math.min(window.devicePixelRatio || 1, 1.25)
+        ? Math.min(window.devicePixelRatio || 1, 1)
         : Math.min(window.devicePixelRatio || 1, 2)
     );
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
