@@ -70,8 +70,9 @@ export const ThreeToothHero: React.FC = () => {
     canvas.style.position = 'absolute';
     canvas.style.inset = '0';
     canvas.style.touchAction = 'pan-y';
-    canvas.style.transform = 'translateZ(0)';
     canvas.style.backfaceVisibility = 'hidden';
+    canvas.style.contain = 'strict';
+    if (isMobile) canvas.style.visibility = 'visible';
     container.style.isolation = 'isolate';
     container.appendChild(canvas);
 
@@ -349,24 +350,34 @@ export const ThreeToothHero: React.FC = () => {
     const handleVisibilityChange = () => {
       isPageVisible = !document.hidden;
       lastFrameTime = performance.now();
-      if (isPageVisible) renderFrame();
+      if (isPageVisible) {
+        if (isMobile && !isScrolling && isInViewport) canvas.style.visibility = 'visible';
+        renderFrame();
+      } else if (isMobile) {
+        canvas.style.visibility = 'hidden';
+      }
     };
 
     const handleScroll = () => {
       if (!isMobile) return;
       isScrolling = true;
+      canvas.style.visibility = 'hidden';
       window.clearTimeout(scrollStopTimer);
       scrollStopTimer = window.setTimeout(() => {
         isScrolling = false;
+        canvas.style.visibility = 'visible';
         lastFrameTime = performance.now();
         renderFrame();
-      }, 120);
+      }, 160);
     };
 
     const intersectionObserver = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
         isInViewport = Boolean(entry?.isIntersecting);
+        if (isMobile) {
+          canvas.style.visibility = isInViewport && !isScrolling ? 'visible' : 'hidden';
+        }
         lastFrameTime = performance.now();
         if (isInViewport) renderFrame();
       },
