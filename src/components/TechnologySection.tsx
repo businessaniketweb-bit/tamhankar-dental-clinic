@@ -88,7 +88,7 @@ export const TechnologySection: React.FC = () => {
           {/* Right: Detailed Deep Dive Display */}
           <div className="lg:col-span-7">
             <div className="rounded-3xl bg-gradient-to-br from-[#131722] via-[#0F121A] to-[#0A0C10] border border-[#C5A059]/30 p-8 sm:p-10 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-80 h-80 bg-[#C5A059]/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="hidden sm:block absolute top-0 right-0 w-80 h-80 bg-[#C5A059]/10 rounded-full blur-3xl pointer-events-none" />
 
               <div className="relative z-10 space-y-6">
                 <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-[#C5A059]/15 border border-[#C5A059]/30 text-xs font-mono text-[#E6C875]">

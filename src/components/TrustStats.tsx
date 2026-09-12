@@ -19,7 +19,7 @@ export const TrustStats: React.FC = () => {
               key={idx}
               className="p-6 rounded-2xl bg-[#12151C]/90 border border-white/5 hover:border-[#C5A059]/30 transition-all duration-300 relative group overflow-hidden"
             >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-[#C5A059]/5 rounded-full blur-2xl group-hover:bg-[#C5A059]/10 transition-colors pointer-events-none" />
+              <div className="hidden sm:block absolute top-0 right-0 w-24 h-24 bg-[#C5A059]/5 rounded-full blur-2xl group-hover:bg-[#C5A059]/10 transition-colors pointer-events-none" />
               
               <div className="flex items-center justify-between mb-4">
                 <span className="text-[11px] uppercase tracking-wider font-mono text-[#C5A059]">

@@ -29,7 +29,7 @@ export const ReputationSection: React.FC = () => {
 
         {/* Reputation Showcase Card */}
         <div className="max-w-4xl mx-auto rounded-3xl bg-gradient-to-br from-[#141924] via-[#10131B] to-[#0D1016] border border-[#C5A059]/30 p-8 sm:p-12 shadow-2xl relative overflow-hidden">
-          <div className="absolute -top-12 -right-12 w-64 h-64 bg-[#C5A059]/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="hidden sm:block absolute -top-12 -right-12 w-64 h-64 bg-[#C5A059]/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center text-center md:text-left">
             {/* Rating Big Number */}

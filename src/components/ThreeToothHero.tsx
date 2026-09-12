@@ -440,7 +440,7 @@ export const ThreeToothHero: React.FC = () => {
     <div className="relative w-full h-[480px] lg:h-[580px] flex items-center justify-center select-none overflow-hidden">
       {/* Studio Radial Background Glow */}
       <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-        <div className="w-[320px] sm:w-[420px] h-[320px] sm:h-[420px] rounded-full bg-gradient-to-tr from-[#C5A059]/10 via-[#C5A059]/5 to-transparent blur-3xl pointer-events-none" />
+        <div className="hidden sm:block w-[320px] sm:w-[420px] h-[320px] sm:h-[420px] rounded-full bg-gradient-to-tr from-[#C5A059]/10 via-[#C5A059]/5 to-transparent blur-3xl pointer-events-none" />
       </div>
 
       {/* WebGL Canvas or Fallback */}

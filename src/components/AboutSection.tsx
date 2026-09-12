@@ -20,7 +20,7 @@ export const AboutSection: React.FC<AboutSectionProps> = ({ onOpenBooking }) => 
           {/* Left Column: Visual Architectural Grid */}
           <div className="lg:col-span-5 space-y-4">
             <div className="relative rounded-3xl overflow-hidden border border-white/10 bg-[#121620] p-8 shadow-2xl">
-              <div className="absolute -right-8 -bottom-8 w-48 h-48 bg-[#C5A059]/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="hidden sm:block absolute -right-8 -bottom-8 w-48 h-48 bg-[#C5A059]/10 rounded-full blur-3xl pointer-events-none" />
               
               <div className="space-y-6">
                 <div className="inline-flex items-center space-x-2 text-[11px] uppercase tracking-widest font-mono text-[#C5A059]">
